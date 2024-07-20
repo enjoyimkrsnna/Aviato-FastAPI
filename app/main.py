@@ -43,7 +43,7 @@ app = FastAPI()
 
 @app.get("/")
 async def root():
-    return {"Hello":"Krishna singh kumar"}  
+    return {"Hello":"Krishna singh ji"}  
 
 
 # Api for creating user
