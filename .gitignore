@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+
+
+# Environment variables
+.env
+
+
+# IDEs and editors
+.vscode/
+.idea/
+
