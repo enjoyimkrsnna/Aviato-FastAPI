@@ -43,7 +43,7 @@ app = FastAPI()
 
 @app.get("/")
 async def root():
-    return {"Hello":"Krishna singh ji"}  
+    return {"Yayyyy! We are running on container"}  
 
 
 # Api for creating user
