@@ -7,7 +7,3 @@ services:
       - 8000:8000
     volumes:
       - .:/app
-    environment:
-      GOOGLE_APPLICATION_CREDENTIALS_JSON: "${GOOGLE_APPLICATION_CREDENTIALS_JSON}"
-      SENDER_EMAIL: "${SENDER_EMAIL}"
-      SENDER_PASSWORD: "${SENDER_PASSWORD}"

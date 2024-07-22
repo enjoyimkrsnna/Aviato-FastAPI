@@ -13,9 +13,32 @@ from email.mime.image import MIMEImage
 from email.utils import formataddr
 import logging
 
+'''
+    @author Krishna Singh
+
+    @date: 20/09/2024
+
+    This FastAPI application provides several endpoints for user management and email functionality:
+
+    - GET /: A simple root endpoint that confirms the API is up and running.
+
+    - POST /api/v1/users: Creates a new user in the Firestore database. The user data is validated to ensure no duplicate email addresses exist.
+
+    - GET /api/v1/users: Retrieves a list of all users from the Firestore database.
+
+    - GET /api/v1/users/{user_id}: Retrieves a specific user from the Firestore database by user ID.
+
+    - PUT /api/v1/users/{user_id}: Updates an existing user's details in the Firestore database. It ensures that only provided fields are updated and handles cases where no valid fields are supplied.
+
+    - DELETE /api/v1/users/{user_id}: Deletes a user from the Firestore database by user ID.
+
+    - POST /api/v1/send_invite: Sends an invitation email to specified recipients. The email includes an HTML template and an attachment (screenshot). The sender's email credentials are used to authenticate and send the email.
+
+'''
+
+
+
 logger = logging.getLogger(__name__)
-
-
 
 load_dotenv()
 GOOGLE_APPLICATION_CREDENTIALS_JSON = os.getenv('GOOGLE_APPLICATION_CREDENTIALS_JSON')
@@ -43,16 +66,19 @@ app = FastAPI()
 
 @app.get("/")
 async def root():
-    return {"Hurray! We are deployed in production!"}  
+    return {
+         "Welcome to the Aviato Consulting Unified API! The API is up and running, and it's ready to handle user management for our projects. You can use this API to create, retrieve, update, and delete users as well as send invitations.",
+       
+    }
 
 
 # Api for creating user
-@app.post("/api/v1/users")
+@app.post("/api/v1/users", status_code=status.HTTP_201_CREATED)
 async def create_user(user: UserCreateRequest):
     try:
         user_data = user.dict()
         logger.debug(f"Received user data: {user_data}")
-        
+
         existing_users = db.collection('users').where('email', '==', user_data.get('email')).get()
         if existing_users:
             logger.debug("User with this email already exists.")
@@ -60,25 +86,27 @@ async def create_user(user: UserCreateRequest):
                 status_code=status.HTTP_409_CONFLICT,
                 detail="A user with this email address already exists. Please use a different email."
             )
-        
+
         user_ref = db.collection('users').document()
         user_data['id'] = user_ref.id
         user_ref.set(user_data)
-        
+
         logger.debug(f"User created with ID: {user_ref.id}")
-        return user_data
-    
+        return {"id": user_ref.id, **user_data}
+
+    except HTTPException as e:
+        logger.error(f"HTTPException: {e.detail}")
+        raise e
     except Exception as e:
-        logger.error(f"Error creating user: {e}")
+        logger.error(f"Unexpected error creating user: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred. Please try again later."
         )
 
 
-
 # Api for getting users details
-@app.get("/api/v1/users")
+@app.get("/api/v1/users", status_code=status.HTTP_200_OK)
 async def get_users():
     try:
         users_ref = db.collection('users')
@@ -86,6 +114,8 @@ async def get_users():
         user_list = [user.to_dict() for user in users]
         return user_list
     
+    except HTTPException as e:
+        raise e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -93,9 +123,30 @@ async def get_users():
         )
 
 
+# Api for getting a single user's details
+@app.get("/api/v1/users/{user_id}",status_code=status.HTTP_200_OK)
+async def get_user(user_id: str):
+    try:
+        user_ref = db.collection('users').document(user_id)
+        user_doc = user_ref.get()
 
-# Api for updating  user's details
-@app.put("/api/v1/users/{user_id}")
+        if not user_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User with id: {user_id} does not exist."
+            )
+        
+        return user_doc.to_dict()
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred while retrieving the user. Details: {str(e)}"
+        )
+    
+
+
+@app.put("/api/v1/users/{user_id}", status_code=status.HTTP_200_OK)
 async def update_user(user_update: UserUpdateRequest, user_id: str):
     user_ref = db.collection('users').document(user_id)
     user_doc = user_ref.get()
@@ -106,12 +157,10 @@ async def update_user(user_update: UserUpdateRequest, user_id: str):
             detail=f"User with id: {user_id} does not exist."
         )
 
- 
     update_data = {}
-    for k, v in user_update.dict().items(): 
+    for k, v in user_update.dict().items():
         if v is not None:
             update_data[k] = v
-
 
     if not update_data:
         raise HTTPException(
@@ -119,11 +168,26 @@ async def update_user(user_update: UserUpdateRequest, user_id: str):
             detail="No valid fields provided for update."
         )
 
+    if 'email' in update_data:
+        new_email = update_data['email']
+        existing_users = db.collection('users').where('email', '==', new_email).get()
+
+        if existing_users:
+            if all(user.id != user_id for user in existing_users):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="A user with this email address already exists. Please use a different email."
+                )
+
     try:
         user_ref.update(update_data)
         updated_user = user_ref.get().to_dict()
         return updated_user
 
+    except HTTPException as e:
+        logger.error(f"HTTPException: {e.detail}")
+        raise e
+    
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -144,7 +208,7 @@ async def delete_user(user_id:str):
     
     try:
         user_ref.delete()
-        return {"details": "User deleted successfully"}
+        return {"User deleted successfully"}
 
     except Exception as e:
         raise HTTPException(
@@ -155,11 +219,11 @@ async def delete_user(user_id:str):
 
 
 # API for sending an email
-@app.post("/api/v1/send_invite")
+@app.post("/api/v1/send_invite",status_code=status.HTTP_200_OK)
 async def send_invite():
     sender_email = os.getenv("SENDER_EMAIL")
     sender_password = os.getenv("SENDER_PASSWORD") 
-    recipients = ["imkrsnna@gmail.com"]
+    recipients = ["imkrsnna@gmail.com","tejas@bbd.co.za","krishna.singh@bbd.co.za"]
     subject = "Invitation to Review Unified API Documentation"
 
 
@@ -198,6 +262,7 @@ async def send_invite():
             server.login(sender_email, sender_password)
             server.send_message(msg)
         return {"detail": "Email sent successfully."}
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
