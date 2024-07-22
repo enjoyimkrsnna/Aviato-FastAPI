@@ -2,7 +2,7 @@
 __pycache__/
 
 
-# Environment variables
+# Environment variables && venv
 .env
 venv/
 

@@ -43,7 +43,7 @@ app = FastAPI()
 
 @app.get("/")
 async def root():
-    return {"Yayyyy! We are running on container"}  
+    return {"Hurray! We are deployed in production!"}  
 
 
 # Api for creating user
