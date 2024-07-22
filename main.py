@@ -107,6 +107,8 @@ async def get_user(user_id: str):
         
         return user_doc.to_dict()
     
+    except HTTPException as e:
+        raise e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -217,7 +219,7 @@ async def update_user(user_update: UserUpdateRequest, user_id: str):
             detail=f"An unexpected error occurred while updating the user. Details: {str(e)}"
         )
 
-    
+     
 
 # Api for deleting user
 @app.delete("/api/v1/users/{user_id}")
