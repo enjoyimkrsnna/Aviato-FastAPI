@@ -5,6 +5,8 @@ from firebase_admin import credentials, firestore
 from fastapi import FastAPI , HTTPException , status
 from models import UserCreateRequest, UserUpdateRequest
 from dotenv import load_dotenv
+from email_validator import validate_email, EmailNotValidError
+
 
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -72,39 +74,6 @@ async def root():
     }
 
 
-# Api for creating user
-@app.post("/api/v1/users", status_code=status.HTTP_201_CREATED)
-async def create_user(user: UserCreateRequest):
-    try:
-        user_data = user.dict()
-        logger.debug(f"Received user data: {user_data}")
-
-        existing_users = db.collection('users').where('email', '==', user_data.get('email')).get()
-        if existing_users:
-            logger.debug("User with this email already exists.")
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="A user with this email address already exists. Please use a different email."
-            )
-
-        user_ref = db.collection('users').document()
-        user_data['id'] = user_ref.id
-        user_ref.set(user_data)
-
-        logger.debug(f"User created with ID: {user_ref.id}")
-        return {"id": user_ref.id, **user_data}
-
-    except HTTPException as e:
-        logger.error(f"HTTPException: {e.detail}")
-        raise e
-    except Exception as e:
-        logger.error(f"Unexpected error creating user: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred. Please try again later."
-        )
-
-
 # Api for getting users details
 @app.get("/api/v1/users", status_code=status.HTTP_200_OK)
 async def get_users():
@@ -145,7 +114,50 @@ async def get_user(user_id: str):
         )
     
 
+# Api for creating user
+@app.post("/api/v1/users", status_code=status.HTTP_201_CREATED)
+async def create_user(user: UserCreateRequest):
+    try:
+        user_data = user.dict()
+        logger.debug(f"Received user data: {user_data}")
 
+        try:
+            validate_email(user_data.get('email'))
+        except EmailNotValidError as e:
+            logger.debug(f"Invalid email format: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid email format. Please provide a valid email address."
+            )
+
+        existing_users = db.collection('users').where('email', '==', user_data.get('email')).get()
+        if existing_users:
+            logger.debug("User with this email already exists.")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A user with this email address already exists. Please use a different email."
+            )
+
+        user_ref = db.collection('users').document()
+        user_data['id'] = user_ref.id
+        user_ref.set(user_data)
+
+        logger.debug(f"User created with ID: {user_ref.id}")
+        return {"id": user_ref.id, **user_data}
+
+    except HTTPException as e:
+        logger.error(f"HTTPException: {e.detail}")
+        raise e
+    except Exception as e:
+        logger.error(f"Unexpected error creating user: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred. Please try again later."
+        )
+
+
+
+# Api for updating user's details
 @app.put("/api/v1/users/{user_id}", status_code=status.HTTP_200_OK)
 async def update_user(user_update: UserUpdateRequest, user_id: str):
     user_ref = db.collection('users').document(user_id)
@@ -167,9 +179,20 @@ async def update_user(user_update: UserUpdateRequest, user_id: str):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No valid fields provided for update."
         )
+        
 
     if 'email' in update_data:
         new_email = update_data['email']
+
+        try:
+            validate_email(new_email)
+        except EmailNotValidError as e:
+            logger.debug(f"Invalid email format: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid email format. Please provide a valid email address."
+            )
+        
         existing_users = db.collection('users').where('email', '==', new_email).get()
 
         if existing_users:
@@ -217,13 +240,12 @@ async def delete_user(user_id:str):
         )
    
 
-
 # API for sending an email
 @app.post("/api/v1/send_invite",status_code=status.HTTP_200_OK)
 async def send_invite():
     sender_email = os.getenv("SENDER_EMAIL")
     sender_password = os.getenv("SENDER_PASSWORD") 
-    recipients = ["imkrsnna@gmail.com","tejas@bbd.co.za","krishna.singh@bbd.co.za"]
+    recipients = ["imkrsnna@gmail.com","krishna.singh@bbd.co.za","tejassonone01@gmail.com"]
     subject = "Invitation to Review Unified API Documentation"
 
 
