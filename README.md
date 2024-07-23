@@ -89,3 +89,13 @@ This repository contains a FastAPI application. The application handles user man
 - Docker for containerization.
 - Google Cloud Run for deployment.
 
+## Documenation references:
+
+1. **FastAPI Documentation**: [https://fastapi.tiangolo.com/](https://fastapi.tiangolo.com/)
+2. **Google Firestore Documentation**: [https://firebase.google.com/docs/firestore](https://firebase.google.com/docs/firestore)
+3. **Docker Documentation**: [https://docs.docker.com/](https://docs.docker.com/)
+4. **Google Cloud Run Documentation**: [https://cloud.google.com/run/docs](https://cloud.google.com/run/docs)
+5. **FastAPI Configuration Guide**: [https://fastapi.tiangolo.com/advanced/settings/](https://fastapi.tiangolo.com/advanced/settings/)
+6. **FastAPI Running Docs**: [https://fastapi.tiangolo.com/deployment/](https://fastapi.tiangolo.com/deployment/)
+7. **Docker Getting Started Guide**: [https://docs.docker.com/get-started/](https://docs.docker.com/get-started/)
+8. **Google Cloud Run Deployment Guide**: [https://cloud.google.com/run/docs/deploying](https://cloud.google.com/run/docs/deploying)
