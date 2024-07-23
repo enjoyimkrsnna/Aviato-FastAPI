@@ -8,6 +8,7 @@ from pydantic import BaseModel ,EmailStr, Field
 
 This file defines data models for user management:
 - Gender: Enum representing user gender (male or female).
+- ProjectID: Enum representing three Project id (1, 2 , 3 )
 - UserCreateRequest: Model for creating a new user with required fields: username, email, gender, and project_id.
 - UserUpdateRequest: Model for updating an existing user's details with optional fields: username, email, gender, and project_id.
 
