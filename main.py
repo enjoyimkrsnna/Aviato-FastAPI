@@ -247,7 +247,7 @@ async def delete_user(user_id:str):
 async def send_invite():
     sender_email = os.getenv("SENDER_EMAIL")
     sender_password = os.getenv("SENDER_PASSWORD") 
-    recipients = ["shraddha@aviato.consulting","pooja@aviato.consulting","prijesh@aviato.consultiong","hiring@aviato.consulting","singh.krishna.dcs24@vnsgu.ac.in"]
+    recipients = ["shraddha@aviato.consulting","pooja@aviato.consulting","prijesh@aviato.consulting","hiring@aviato.consulting","singh.krishna.dcs24@vnsgu.ac.in"]
     subject = "Invitation to Review Unified API Documentation"
 
 
